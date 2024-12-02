@@ -1,4 +1,8 @@
-# requirements.txt
-streamlit==1.29.0
-nltk==3.8.1
-gTTS==2.5.0
+streamlit
+nltk
+spacy==3.7.4
+textstat
+transformers
+gTTS
+google-generativeai
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
