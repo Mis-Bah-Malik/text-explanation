@@ -9,10 +9,19 @@ from gtts import gTTS
 import google.generativeai as genai
 import traceback
 
-# Download necessary resources
-nltk.download('punkt')
-nltk.download('averaged_perceptron_tagger')
-nltk.download('wordnet')
+# Ensure NLTK resources are downloaded
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+try:
+    nltk.data.find('taggers/averaged_perceptron_tagger')
+except LookupError:
+    nltk.download('averaged_perceptron_tagger')
+try:
+    nltk.data.find('corpora/wordnet')
+except LookupError:
+    nltk.download('wordnet')
 
 class AdvancedTextProcessor:
     def __init__(self):
@@ -21,15 +30,24 @@ class AdvancedTextProcessor:
         
         # Initialize text generation model
         try:
-            # You'll need to set up Google Generative AI API key
-            genai.configure(api_key=st.secrets.get("GOOGLE_API_KEY", os.environ.get("GOOGLE_API_KEY")))
-            self.generation_model = genai.GenerativeModel('gemini-pro')
+            # Use st.secrets or environment variable for API key
+            api_key = st.secrets.get("GOOGLE_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+            if api_key:
+                genai.configure(api_key=api_key)
+                self.generation_model = genai.GenerativeModel('gemini-pro')
+            else:
+                st.warning("Google API key not found. Generative AI features will be limited.")
+                self.generation_model = None
         except Exception as e:
-            st.warning("Generative AI model not available. Using fallback explanation method.")
+            st.warning(f"Generative AI model setup failed: {e}")
             self.generation_model = None
         
         # Hugging Face transformers pipeline for text generation
-        self.text_generator = pipeline('text-generation', model='gpt2')
+        try:
+            self.text_generator = pipeline('text-generation', model='gpt2')
+        except Exception as e:
+            st.warning(f"Text generation model setup failed: {e}")
+            self.text_generator = None
     
     def analyze_paragraph(self, text):
         """
@@ -119,6 +137,9 @@ class AdvancedTextProcessor:
         """
         Generate an interpretative explanation using text generator
         """
+        if not self.text_generator:
+            return "Interpretative explanation could not be generated due to model limitations."
+        
         try:
             generated_text = self.text_generator(
                 f"Explain the deeper meaning of: {text}", 
