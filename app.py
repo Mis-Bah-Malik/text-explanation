@@ -1,88 +1,41 @@
 import streamlit as st
-import traceback
+import nltk
+import spacy
+import textstat
 
-# Conditional Imports
-try:
-    import nltk
-    import spacy
-    import textstat
-    from gtts import gTTS
-except ImportError:
-    st.error("Required libraries are not installed. Please install via requirements.txt")
-    st.stop()
-
-# Optional Imports with Fallbacks
-try:
-    from transformers import pipeline
-    has_transformers = True
-except ImportError:
-    has_transformers = False
-    st.warning("Text generation capabilities will be limited")
-
-try:
-    import google.generativeai as genai
-    has_genai = True
-except ImportError:
-    has_genai = False
-    st.warning("Google Generative AI features will be unavailable")
-
-# Ensure NLTK resources are downloaded
+# Ensure NLTK resources are available
 try:
     nltk.download('punkt', quiet=True)
-    nltk.download('averaged_perceptron_tagger', quiet=True)
 except Exception as e:
-    st.warning(f"NLTK resource download failed: {e}")
+    st.warning(f"NLTK download error: {e}")
 
-class SimpleTextProcessor:
+class TextAnalyzer:
     def __init__(self):
-        try:
-            self.nlp = spacy.load('en_core_web_sm')
-        except Exception as e:
-            st.error(f"SpaCy model loading failed: {e}")
-            self.nlp = None
+        self.nlp = spacy.load('en_core_web_sm')
 
-    def analyze_paragraph(self, text):
-        if not self.nlp:
-            return {"error": "SpaCy model not loaded"}
-        
+    def analyze_text(self, text):
         doc = self.nlp(text)
         
-        analysis = {
-            'basic_info': {
-                'total_words': len(doc),
-                'total_sentences': len(list(doc.sents)),
-                'reading_ease': textstat.flesch_reading_ease(text),
-                'reading_grade': textstat.flesch_kincaid_grade(text)
-            },
-            'linguistic_features': {
-                'named_entities': [(ent.text, ent.label_) for ent in doc.ents],
-                'key_phrases': [chunk.text for chunk in doc.noun_chunks][:5]
-            }
+        return {
+            'word_count': len(doc),
+            'sentence_count': len(list(doc.sents)),
+            'reading_ease': textstat.flesch_reading_ease(text),
+            'reading_grade': textstat.flesch_kincaid_grade(text),
+            'named_entities': [(ent.text, ent.label_) for ent in doc.ents]
         }
-        
-        return analysis
 
 def main():
-    st.set_page_config(page_title="Text Analysis", page_icon="📚")
+    st.title("🔍 Simple Text Analysis")
     
-    st.title("📚 Simple Text Analysis Tool")
+    text_input = st.text_area("Enter your text here:", height=200)
     
-    input_text = st.text_area("Enter your text here", height=200)
-    
-    if st.button("Analyze Text"):
-        if input_text:
-            try:
-                processor = SimpleTextProcessor()
-                result = processor.analyze_paragraph(input_text)
-                
-                st.subheader("Analysis Results")
-                st.json(result)
-                
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-                st.error(traceback.format_exc())
-        else:
-            st.warning("Please enter some text")
+    if st.button("Analyze"):
+        try:
+            analyzer = TextAnalyzer()
+            result = analyzer.analyze_text(text_input)
+            st.json(result)
+        except Exception as e:
+            st.error(f"Analysis error: {e}")
 
 if __name__ == "__main__":
     main()
